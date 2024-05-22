@@ -8,8 +8,23 @@ function init() {
   document.getElementById("buttonDisplay").addEventListener("click", getImage);
 }
 
-function getImage() {
-  fetchAndCacheImage(baseURL);
+async function getImage() {
+  caches.open(cacheName).then((cache) => {
+    cache.matchAll().then((matchResults) => {
+      if (matchResults.length == 0) {
+        log("Cache is empty.");
+        log("Start fetching:");
+        fetchAndCacheImage();
+      }
+      log(matchResults, typeof matchResults);
+      const imageURLs = matchResults.map((result) => {
+        return result.url;
+      });
+      log(imageURLs);
+      displayImage(imageURLs);
+      log("Display images from cache.");
+    });
+  });
 }
 
 function displayImage(imageList) {
@@ -26,7 +41,7 @@ function displayImage(imageList) {
   result.append(df);
 }
 
-function fetchAndCacheImage(baseURL) {
+function fetchAndCacheImage() {
   fetch(baseURL)
     .then((response) => {
       if (!response.ok) {
@@ -35,19 +50,23 @@ function fetchAndCacheImage(baseURL) {
       return response.json();
     })
     .then((data) => {
-      log(data);
+      log("Fetch success:", data);
       const imageList = data.map((item) => {
         return item.download_url;
       });
       log(imageList);
       caches.open(cacheName).then((cache) => {
         cache.addAll(imageList);
+        log("Data saved to cache.");
+        displayImage(imageList);
+        log("Display images from fetch.");
       });
-      displayImage(imageList);
     })
     .catch((err) => {
       log(err);
     });
 }
+
+// i don't know how to handle expiration of the cache
 
 window.addEventListener("DOMContentLoaded", init);
